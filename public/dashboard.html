@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Sense - Bienvenido</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body class="bg-light">
+    <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow-sm px-3 fixed-top">
+        <a class="navbar-brand d-flex align-items-center" href="dashboard.html">
+            <span class="me-2"><img src="./assets/logo.png" alt="Logo" style="height:50px;"></span>
+            <span class="fw-bold">Smart Sense</span>
+        </a>
+
+        <ul class="navbar-nav ms-auto align-items-center">
+            <li class="nav-item">
+                <div class="d-flex align-items-center">
+                    <img src="https://bootdey.com/img/Content/avatar/avatar7.png" alt="Avatar" class="rounded-circle"
+                        width="32" height="32">
+                    <span id="user" class="ms-2 d-none d-lg-inline text-primary fs-5"></span>
+                    <button id="logout"
+                        class="btn btn-danger rounded ms-3 d-flex align-items-center justify-content-center"
+                        style="width:32px; height:32px;">
+                        <i class="fas fa-sign-out-alt" style="font-size: 1.3rem;"></i>
+                    </button>
+                </div>
+
+                <!-- <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                    <li><a class="dropdown-item" href="#">Perfil</a></li>
+                    <li>
+                        <hr class="dropdown-divider">
+                    </li>
+                    <li><a class="dropdown-item" href="#" id="logout">Cerrar sesión</a></li>
+                </ul> -->
+            </li>
+        </ul>
+    </nav>
+
+    <div class="container py-5 mt-5">
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header fw-bold text-primary">Temperatura (°C)</div>
+                    <div class="card-body">
+                        <canvas id="sensorChart1"></canvas>
+                    </div>
+                </div>
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header fw-bold text-success">Humedad (%)</div>
+                    <div class="card-body">
+                        <canvas id="sensorChart2"></canvas>
+                    </div>
+                </div>
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header fw-bold text-success">Lluvia</div>
+                    <div class="text-center my-3">
+                        <button id="lluvia-btn" type="button"
+                            class="btn btn-lg rounded-circle bg-secondary text-white border-0"
+                            style="width:200px; height:200px;">
+                            <i id="lluvia-icono" class="bi bi-cloud-sun-fill" style="font-size:7rem;"></i>
+                        </button>
+                        <div id="lluvia-estado" class="mt-2 text-muted fw-bold fs-3">No llueve</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header fw-bold text-warning">Distancia (cm)</div>
+                    <div class="card-body">
+                        <canvas id="sensorChart3"></canvas>
+                    </div>
+                </div>
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header fw-bold text-danger">Flujo de agua (L/s)</div>
+                    <div class="card-body">
+                        <canvas id="sensorChart4"></canvas>
+                    </div>
+                </div>
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header fw-bold text-success">Alarma</div>
+                    <div class="text-center my-3">
+                        <button id="alarma-btn" type="submit"
+                            class="btn btn-lg rounded-circle bg-secondary text-white border-0"
+                            style="width:200px; height:200px;">
+                            <i class="bi bi-power" style="font-size:7rem;"></i>
+                        </button>
+                        <div id="alarma-estado" class="mt-2 text-muted fw-bold fs-3">Off</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="bg-white text-center py-3 shadow-sm mt-5">
+        <div class="container">
+            <span class="text-muted">&copy; 2025 Smart Sense. Todos los derechos reservados.</span>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module" src="js/signOut.js"></script>
+    <script type="module" src="js/dashboard.js"></script>
+    <script type="module" src="js/user.js"></script>
+</body>
+
+</html>
