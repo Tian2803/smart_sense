@@ -9,6 +9,8 @@ import {
   onSnapshot,
   addDoc,
   serverTimestamp,
+  doc,
+  setDoc,
 } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
 const db = getFirestore(app);
@@ -48,27 +50,36 @@ function renderChart(canvasId, label, data, color) {
     return ta - tb;
   });
 
-  const labels = data.map((d) => {
-    let fecha;
+  // Crear dos arrays: uno para etiquetas cortas (eje X) y otro para fechas completas (tooltip)
+  const labels = [];
+  const fullDates = [];
+
+  data.forEach((d) => {
     let dateObj;
     if (typeof d.timestamp === "string") {
       dateObj = new Date(d.timestamp);
     } else if (d.timestamp && d.timestamp.toDate) {
       dateObj = d.timestamp.toDate();
     }
+
     if (dateObj) {
-      //Formato: DD-MM-YYYY HH:mm:ss
       const year = dateObj.getFullYear();
       const month = String(dateObj.getMonth() + 1).padStart(2, "0");
       const day = String(dateObj.getDate()).padStart(2, "0");
       const hours = String(dateObj.getHours()).padStart(2, "0");
       const minutes = String(dateObj.getMinutes()).padStart(2, "0");
       const seconds = String(dateObj.getSeconds()).padStart(2, "0");
-      fecha = `${day}-${month}-${year} ${hours}:${minutes}:${seconds}`;
+      // Eje X - hora, minutos y segundos
+      const shortLabel = `${hours}:${minutes}:${seconds}`;
+      // Tooltip - Fecha completa
+      const fullDate = `${day}-${month}-${year} ${hours}:${minutes}:${seconds}`;
+
+      labels.push(shortLabel);
+      fullDates.push(fullDate);
     } else {
-      fecha = "";
+      labels.push("");
+      fullDates.push("");
     }
-    return fecha;
   });
 
   const valores = data.map((d) => d.value);
@@ -104,10 +115,11 @@ function renderChart(canvasId, label, data, color) {
           enabled: true,
           callbacks: {
             title: function (context) {
-              return `${context[0].label}`;
+              const index = context[0].dataIndex;
+              return fullDates[index];
             },
             label: function (context) {
-              return `value: ${context.parsed.y}`;
+              return `${label}: ${context.parsed.y}`;
             },
           },
         },
@@ -117,8 +129,48 @@ function renderChart(canvasId, label, data, color) {
         intersect: false,
       },
       scales: {
-        x: { display: true, title: { display: false } },
-        y: { display: true, title: { display: false } },
+        x: {
+          display: true,
+          title: { display: false },
+          ticks: {
+            maxTicksLimit: 8,
+            maxRotation: 45,
+            minRotation: 0,
+            font: {
+              size: 10,
+            },
+          },
+          grid: {
+            display: true,
+            drawOnChartArea: false,
+            drawTicks: true,
+            tickLength: 5,
+            color: "#858796", //#f8f9fc
+            lineWidth: 1,
+          },
+          border: {
+            display: true,
+            color: "#858796",
+            width: 1,
+          },
+        },
+        y: {
+          display: true,
+          title: { display: false },
+          grid: {
+            display: true,
+            drawOnChartArea: false,
+            drawTicks: true,
+            tickLength: 5,
+            color: "#858796", //#f8f9fc
+            lineWidth: 1,
+          },
+          border: {
+            display: true,
+            color: "#858796",
+            width: 1,
+          },
+        },
       },
     },
   });
@@ -165,7 +217,7 @@ async function consultarLLuvia() {
     const estado = document.getElementById("lluvia-estado");
 
     //valor es 0 si esta lloviendo y 1 si no llueve
-    if (dato[0].value === 0) {
+    if (dato[0].value === 1) {
       btn.classList.remove("bg-secondary");
       btn.classList.add("bg-primary");
       icono.className = "bi bi-cloud-drizzle-fill";
@@ -219,8 +271,28 @@ async function consultarAlarma() {
     }
   });
 }
-
 consultarAlarma();
+
+var mqtt;
+var reconnectTimeout = 2000;
+var host = "192.168.1.91";
+var port = 9001;
+
+function onConnect() {
+  console.log("Connected to MQTT broker on port 9001");
+}
+
+function onConnectionLost(responseObject) {
+  if (responseObject.errorCode !== 0) {
+    console.log("onConnectionLost:" + responseObject.errorMessage);
+    setTimeout(mqttConnect, reconnectTimeout);
+  }
+}
+
+function onFailure(message) {
+  console.log("Connection failed: " + message.errorMessage);
+  setTimeout(mqttConnect, reconnectTimeout);
+}
 
 const toggleAlarma = document.getElementById("alarma-btn");
 if (toggleAlarma) {
@@ -228,13 +300,88 @@ if (toggleAlarma) {
     e.preventDefault();
     const estado = document.getElementById("alarma-estado");
     const isActive = estado.textContent.includes("ON");
+    const nuevoValor = isActive ? 0 : 1;
     await addDoc(
       collection(db, "dispositivos", "esp32", "variables", "alarma", "data"),
       {
         sensor_id: "L001",
-        value: isActive ? 0 : 1,
+        value: nuevoValor,
         timestamp: serverTimestamp(),
       }
     );
+
+    // 2. Actualizar ultimos_datos (con timestamp en milisegundos)
+    const ultimosDatosRef = doc(
+      db,
+      "dispositivos",
+      "esp32",
+      "variables",
+      "ultimos_datos"
+    );
+    const timestampMs = Date.now();
+
+    await setDoc(
+      ultimosDatosRef,
+      {
+        alarma: nuevoValor,
+        timestamp: timestampMs, // ← Timestamp numérico
+      },
+      { merge: true }
+    );
+
+    if (!mqtt || !mqtt.isConnected()) {
+      console.error("MQTT client not connected");
+      return false;
+    }
+
+    const alarmData = {
+      alarma: nuevoValor,
+    };
+
+    try {
+      const message = new Paho.MQTT.Message(JSON.stringify(alarmData));
+      message.destinationName = "data0027/alarma";
+      message.qos = 1;
+      mqtt.send(message);
+
+      console.log("🚨 Alarm published:", alarmData);
+      return true;
+    } catch (error) {
+      console.error("Error publishing alarm:", error);
+      return false;
+    }
   });
 }
+
+function mqttConnect() {
+  console.log("Connecting to " + host + ":" + port);
+
+  if (typeof Paho === "undefined") {
+    console.error("Paho MQTT library not loaded");
+    setTimeout(mqttConnect, 2000);
+    return;
+  }
+
+  mqtt = new Paho.MQTT.Client(host, port, "UdeC0027");
+
+  mqtt.onConnectionLost = onConnectionLost;
+
+  var options = {
+    timeout: 10,
+    onSuccess: onConnect,
+    onFailure: onFailure,
+    userName: "sebastian",
+    password: "2025",
+    useSSL: false,
+    cleanSession: true,
+    keepAliveInterval: 30,
+  };
+
+  mqtt.connect(options);
+}
+
+// Inicializar conexión MQTT cuando se carga la página
+document.addEventListener("DOMContentLoaded", function () {
+  // Esperar un poco antes de conectar para asegurar que Paho esté cargado
+  setTimeout(mqttConnect, 1000);
+});

@@ -32,6 +32,10 @@ async function consultarUsuario() {
         document.getElementById(
           "user"
         ).innerText = `${usuario.name} ${usuario.lastname}`;
+
+        document.getElementById(
+          "user-mobile"
+        ).innerText = `${usuario.name} ${usuario.lastname}`;
       } else {
         console.log("Usuario no encontrado");
       }
